@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="nl">
+  <head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>To Do App</title>
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <div class="container">
+      <div class="card">
+        <h1>To Do App</h1>
+
+        <form class="todo-form" id="todoForm">
+          <input id="todoInput" type="text" placeholder="Nieuwe taak..." maxlength="120" required>
+          <button class="add-btn" type="submit">Toevoegen</button>
+        </form>
+
+        <ul class="todo-list" id="todoList"></ul>
+        <div class="status" id="statusText">0 taken</div>
+      </div>
+    </div>
+
+    <script>
+      const STORAGE_KEY = 'todo-items-v1';
+      const form = document.getElementById('todoForm');
+      const input = document.getElementById('todoInput');
+      const list = document.getElementById('todoList');
+      const statusText = document.getElementById('statusText');
+
+      function loadTodos() {
+        try {
+          const saved = localStorage.getItem(STORAGE_KEY);
+          return saved ? JSON.parse(saved) : [];
+        } catch {
+          return [];
+        }
+      }
+
+      function saveTodos(todos) {
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+      }
+
+      function renderTodos() {
+        const todos = loadTodos();
+        list.innerHTML = '';
+
+        if (todos.length === 0) {
+          const empty = document.createElement('li');
+          empty.className = 'empty-state';
+          empty.textContent = 'Nog geen taken toegevoegd.';
+          list.appendChild(empty);
+        } else {
+          todos.forEach((todo) => {
+            const item = document.createElement('li');
+            item.className = `todo-item ${todo.done ? 'done' : ''}`;
+
+            const checkbox = document.createElement('input');
+            checkbox.type = 'checkbox';
+            checkbox.checked = todo.done;
+            checkbox.setAttribute('aria-label', `Taak voltooien: ${todo.text}`);
+            checkbox.addEventListener('change', () => {
+              toggleTodo(todo.id);
+            });
+
+            const text = document.createElement('span');
+            text.className = 'todo-text';
+            text.textContent = todo.text;
+
+            const deleteBtn = document.createElement('button');
+            deleteBtn.type = 'button';
+            deleteBtn.className = 'delete-btn';
+            deleteBtn.textContent = 'Verwijderen';
+            deleteBtn.addEventListener('click', () => {
+              deleteTodo(todo.id);
+            });
+
+            item.appendChild(checkbox);
+            item.appendChild(text);
+            item.appendChild(deleteBtn);
+            list.appendChild(item);
+          });
+        }
+
+        const completedCount = todos.filter((todo) => todo.done).length;
+        statusText.textContent = `${todos.length} taken • ${completedCount} afgerond`;
+      }
+
+      function addTodo(text) {
+        const trimmed = text.trim();
+        if (!trimmed) return;
+
+        const todos = loadTodos();
+        todos.push({
+          id: Date.now() + Math.random(),
+          text: trimmed,
+          done: false
+        });
+
+        saveTodos(todos);
+        renderTodos();
+      }
+
+      function toggleTodo(id) {
+        const todos = loadTodos();
+        const updated = todos.map((todo) => {
+          if (todo.id === id) {
+            return { ...todo, done: !todo.done };
+          }
+          return todo;
+        });
+
+        saveTodos(updated);
+        renderTodos();
+      }
+
+      function deleteTodo(id) {
+        const todos = loadTodos().filter((todo) => todo.id !== id);
+        saveTodos(todos);
+        renderTodos();
+      }
+
+      form.addEventListener('submit', (event) => {
+        event.preventDefault();
+        addTodo(input.value);
+        input.value = '';
+        input.focus();
+      });
+
+      renderTodos();
+    </script>
+  </body>
+</html>
